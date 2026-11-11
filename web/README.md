@@ -28,7 +28,7 @@ Edit `config.php` (or create `config.local.php` returning an array that override
 ```php
 return [
     'db_type'      => 'mysql',   // 'mysql' or 'sqlite' — MUST match the plugin's Database.Type
-    'table_prefix' => 'ma_',     // MUST match the plugin's Database.TablePrefix (table = <prefix>players)
+    'table_prefix' => 'ma_',     // MUST match the plugin's Database.TablePrefix (table = <prefix>mostactive)
 
     // used when db_type = mysql
     'mysql' => [
@@ -51,7 +51,7 @@ return [
 
 ### MySQL (recommended for a public site)
 1. In the plugin's `MostActive.json`, set `Database.Type = "mysql"` and the same MySQL server/db the
-   web will use. The plugin creates the `<prefix>players` table on load.
+   web will use. The plugin creates the `<prefix>mostactive` table on load.
 2. In `config.php` set `db_type = 'mysql'`, the same `table_prefix`, and the MySQL credentials.
    A read-only MySQL user is enough for the web.
 

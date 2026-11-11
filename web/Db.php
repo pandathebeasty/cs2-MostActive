@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Thin PDO wrapper for MostActive, supporting MySQL and SQLite with the same queries.
- * The table is <prefix>players (steamid, playername, time_ct, time_t, time_spec, total, last_seen).
+ * The table is <prefix>mostactive (steamid, playername, time_ct, time_t, time_spec, total, last_seen).
  */
 final class Db
 {
@@ -13,7 +13,7 @@ final class Db
     public function __construct(array $config)
     {
         $prefix = $config['table_prefix'] ?? 'ma_';
-        $this->table = $prefix . 'players';
+        $this->table = $prefix . 'mostactive';
 
         if (($config['db_type'] ?? 'mysql') === 'sqlite') {
             $file = $config['sqlite_file'] ?? '';

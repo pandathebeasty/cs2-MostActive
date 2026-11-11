@@ -37,7 +37,7 @@ Time is shown per `TimeFormat` (default `HH:mm:ss`; tokens `HH/mm/ss`, `H/m/s`, 
 > the web host can read the plugin's `.db` file directly.
 
 ## Database
-Table `<prefix>players` (default `ma_players`): `steamid` (SteamID64, PK), `playername`, `time_ct`,
+Table `<prefix>mostactive` (default `ma_mostactive`): `steamid` (SteamID64, PK), `playername`, `time_ct`,
 `time_t`, `time_spec`, `total`, `last_seen`. Created automatically by the plugin. Players unseen for
 `PruneDays` days are pruned on load.
 

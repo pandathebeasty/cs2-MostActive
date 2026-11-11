@@ -19,7 +19,7 @@ public sealed class PlayerTime
 }
 
 /// <summary>
-/// Minimal storage for MostActive on MySQL or SQLite (same schema). Table: &lt;prefix&gt;players with
+/// Minimal storage for MostActive on MySQL or SQLite (same schema). Table: &lt;prefix&gt;mostactive with
 /// SteamID64 as the key and seconds-per-team counters. All async / off the game thread.
 /// </summary>
 public sealed class Storage : IAsyncDisposable
@@ -35,7 +35,7 @@ public sealed class Storage : IAsyncDisposable
         _cfg = cfg;
         _mysql = cfg.Type.Equals("mysql", StringComparison.OrdinalIgnoreCase);
         var prefix = string.IsNullOrWhiteSpace(cfg.TablePrefix) ? "ma_" : cfg.TablePrefix;
-        _table = prefix + "players";
+        _table = prefix + "mostactive";
     }
 
     private IDbConnection Open()
