@@ -1,0 +1,23 @@
+// MostActive — commented config reference (JSONC).
+// Live config: addons/counterstrikesharp/configs/plugins/MostActive/MostActive.json
+// CSSharp rewrites the live .json (strips comments) — keep this as the reference.
+{
+  "Database": {
+    "Type": "sqlite",                 // "sqlite" (file) or "mysql" (web panel reads mysql)
+    "TablePrefix": "ma_",             // table = <prefix>players; must match the web config
+    "SqliteFile": "mostactive.db",    // relative to the plugin folder
+    "MySqlHost": "127.0.0.1",
+    "MySqlPort": 3306,
+    "MySqlDatabase": "mostactive",
+    "MySqlUser": "root",
+    "MySqlPassword": ""
+  },
+  "TimeCommand": ["time", "active"],            // !time — your own T/CT/Spec/Total
+  "TopCommand": ["topactive"],                  // !topactive — top N by total
+  "WastedCommand": ["wasted"],                  // !wasted — sum of everyone's time
+  "TopCount": 10,                               // rows printed by !topactive
+  "TimeFormat": "HH:mm:ss",                     // time display; tokens HH/mm/ss, H/m/s, D(days)
+  "PruneDays": 30,                              // delete players unseen for N days (0 = never)
+  "TrackSpectator": true,                       // count spectator seconds
+  "ChatPrefix": "{green}[MostActive]{default} " // color tags: {green}{red}{blue}{gold}{grey}... 
+}

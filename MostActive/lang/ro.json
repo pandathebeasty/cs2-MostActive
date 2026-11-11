@@ -1,0 +1,12 @@
+{
+  "not_ready": "{grey}Timpul tău încă se încarcă, încearcă imediat.",
+  "rank_header": "{green}Timpul tău jucat:",
+  "rank_line_t": "{red}Terorist:{default} {1}",
+  "rank_line_ct": "{blue}Anti-terorist:{default} {1}",
+  "rank_line_spec": "{grey}Spectator:{default} {1}",
+  "rank_line_total": "{gold}Total:{default} {1}",
+  "top_header": "{green}Top {1} cei mai activi jucători:",
+  "top_empty": "{grey}Niciun jucător în clasament încă.",
+  "top_line": "{gold}#{1}{default} {2} {grey}-{default} {3}",
+  "wasted": "{green}Jucătorii au petrecut în total {gold}{1}{green} pe acest server."
+}

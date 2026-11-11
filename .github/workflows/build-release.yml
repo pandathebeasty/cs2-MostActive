@@ -1,0 +1,131 @@
+name: Build & Release
+
+# Manual-only. The release tag is taken automatically from the plugin's ModuleVersion in
+# MostActive.cs (e.g. 1.0.0 -> tag v1.0.0). Packages the CS2 plugin (+ shared API) AND the web board.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Create a GitHub release (tag = plugin ModuleVersion). Off = build artifact only."
+        type: boolean
+        required: false
+        default: true
+      prerelease:
+        description: "Mark the release as a pre-release"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Read ModuleVersion from MostActive.cs and expose it as the release tag.
+      - name: Resolve version from plugin
+        id: ver
+        run: |
+          set -e
+          VERSION=$(grep -oP 'ModuleVersion\s*=>\s*"\K[^"]+' MostActive/MostActive.cs | head -n1)
+          if [ -z "$VERSION" ]; then echo "Could not read ModuleVersion from MostActive.cs" >&2; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Plugin version: $VERSION (tag v$VERSION)"
+
+      - name: Restore
+        run: dotnet restore MostActive/MostActive.csproj
+
+      - name: Build (Release)
+        run: dotnet build MostActive/MostActive.csproj -c Release --no-restore
+
+      # Lay the package out exactly as it installs on a server.
+      - name: Stage package
+        run: |
+          set -e
+          ROOT="$GITHUB_WORKSPACE/package"
+
+          # 1) Plugin -> addons/counterstrikesharp/plugins/MostActive  (folder name == DLL name)
+          PLUGIN="$ROOT/addons/counterstrikesharp/plugins/MostActive"
+          mkdir -p "$PLUGIN"
+          cp -r MostActive/bin/Release/net10.0/. "$PLUGIN/"
+          # The shared API DLL must live in shared/, not next to the plugin — drop its copy from here.
+          rm -f "$PLUGIN/MostActiveApi.dll"
+          mkdir -p "$PLUGIN/lang"
+          cp -f MostActive/lang/*.json "$PLUGIN/lang/" 2>/dev/null || true
+
+          # 2) Shared API -> addons/counterstrikesharp/shared/MostActiveApi
+          SHARED="$ROOT/addons/counterstrikesharp/shared/MostActiveApi"
+          mkdir -p "$SHARED"
+          cp -f MostActiveApi/bin/Release/net10.0/MostActiveApi.dll "$SHARED/" 2>/dev/null || true
+
+          # 3) Commented config reference next to the plugin for convenience.
+          cp -f MostActive.example.jsonc "$PLUGIN/" 2>/dev/null || true
+
+          # 4) Web board -> web/  (upload to any PHP host; see web/README.md)
+          mkdir -p "$ROOT/web"
+          cp -f web/index.php web/Db.php web/config.php web/README.md "$ROOT/web/" 2>/dev/null || true
+
+      - name: Zip package
+        run: |
+          cd package
+          zip -r "$GITHUB_WORKSPACE/MostActive-${{ steps.ver.outputs.version }}.zip" addons web
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MostActive-${{ steps.ver.outputs.version }}
+          path: MostActive-${{ steps.ver.outputs.version }}.zip
+          if-no-files-found: error
+
+      - name: Create release
+        if: ${{ inputs.release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: MostActive ${{ steps.ver.outputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: MostActive-${{ steps.ver.outputs.version }}.zip
+          body: |
+            # MostActive ${{ steps.ver.outputs.tag }}
+
+            Time-played rank system for CS2 (CounterStrikeSharp) + standalone web rank board.
+
+            **Download:** `MostActive-${{ steps.ver.outputs.version }}.zip` — contains the server
+            plugin (laid out for CounterStrikeSharp) and the `web/` board.
+
+            ## Zip layout
+            ```
+            addons/counterstrikesharp/plugins/MostActive/   <- the plugin (DLL + DB drivers + runtimes + lang)
+            addons/counterstrikesharp/shared/MostActiveApi/  <- MostActiveApi.dll (other plugins reference this)
+            web/                                             <- the PHP rank board
+            ```
+
+            ## Install — plugin
+            1. Extract into your server's `game/csgo/` (keeps the `addons/...` paths above).
+            2. Requires CounterStrikeSharp **1.0.379+** (with the runtime) and a database (SQLite or MySQL).
+            3. Start once to generate `configs/plugins/MostActive/MostActive.json`; edit it
+               (use `MostActive.example.jsonc` as the commented reference). Pick `sqlite` or `mysql`.
+
+            ## Install — web
+            1. Upload the `web/` folder to a PHP 8+ host (enable `pdo_mysql` and/or `pdo_sqlite`).
+            2. Edit `web/config.php` (or create `web/config.local.php`): set `db_type`, `table_prefix`
+               and the MySQL creds or the SQLite file path — must match the plugin. See `web/README.md`.
+
+            ## API
+            Other plugins read live played-time via the `MostActiveApi` capability (`mostactive:api`):
+            `GetPlayTimeCt/T/Spec/Total/TotalExceptSpec`, `IsLoaded`.
+
+            ## Changelog
+            <!-- GitHub auto-generates the commit/PR changelog below. -->
+            ---
