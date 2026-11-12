@@ -46,19 +46,22 @@ $perPage = min(25, max(1, (int) ($config['per_page'] ?? 25)));
 
 $timeFmt = (string) ($config['time_format'] ?? 'HH:mm:ss');
 $isApi = isset($_GET['api']);
+$period = Db::normalizePeriod((string) ($_GET['period'] ?? '')); // '' = all-time (default)
 
 $error = null;
 $rows = [];
 $total = 0;
 $sumTotal = 0;
 $players = 0;
+$periodList = [];
 try {
     $db = new Db($config);
-    $res = $db->top($sort, $page, $perPage, $search);
+    $res = $db->top($sort, $page, $perPage, $search, $period);
     $rows = $res['rows'];
     $total = $res['total'];
-    $sumTotal = $db->sumTotal();
-    $players = $db->playerCount();
+    $sumTotal = $db->sumTotal($period);
+    $players = $db->playerCount($period);
+    $periodList = $db->periods();
 } catch (Throwable $e) {
     $error = $e->getMessage();
 }
@@ -156,6 +159,37 @@ $rankStart = ($page - 1) * $perPage;
   #q { background:var(--panel); border:1px solid var(--line); color:var(--txt); border-radius:22px;
        padding:9px 14px 9px 34px; font-size:13px; min-width:230px; outline:none; transition:.15s; }
   #q:focus { border-color:var(--accent); min-width:260px; }
+  /* Custom period dropdown (matches the site theme; native <select> can't be fully styled). */
+  .dropdown { position:relative; }
+  .dd-btn {
+    display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line);
+    color:var(--txt); border-radius:22px; padding:9px 13px 9px 14px; font-size:13px; font-family:inherit;
+    cursor:pointer; outline:none; transition:border-color .15s, background .15s; min-width:132px;
+  }
+  .dd-btn:hover { border-color:var(--accent); }
+  .dd-btn .dd-cal { opacity:.65; }
+  .dd-label { flex:1; text-align:left; font-variant-numeric:tabular-nums; }
+  .dd-caret { opacity:.7; transition:transform .18s ease; }
+  .dropdown.open .dd-btn { border-color:var(--accent); background:var(--panel2); }
+  .dropdown.open .dd-caret { transform:rotate(180deg); }
+
+  .dd-menu {
+    position:absolute; top:calc(100% + 6px); left:0; min-width:100%; z-index:40; margin:0; padding:5px;
+    list-style:none; background:rgba(22,27,22,.98); border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 14px 34px #000a, 0 0 0 1px #0004; backdrop-filter:blur(10px);
+    max-height:280px; overflow-y:auto;
+    opacity:0; transform:translateY(-6px) scale(.98); transform-origin:top center;
+    pointer-events:none; transition:opacity .15s ease, transform .15s ease;
+  }
+  .dropdown.open .dd-menu { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .dd-opt {
+    padding:8px 12px; border-radius:8px; font-size:13px; color:var(--muted); cursor:pointer;
+    font-variant-numeric:tabular-nums; transition:background .12s, color .12s; white-space:nowrap;
+  }
+  .dd-opt:hover { background:#ffffff0f; color:var(--txt); }
+  .dd-opt.sel { color:#141a12; background:linear-gradient(90deg,var(--accent2),var(--accent)); font-weight:700; }
+  .dd-menu::-webkit-scrollbar { width:8px; }
+  .dd-menu::-webkit-scrollbar-thumb { background:#ffffff1a; border-radius:8px; }
 
   .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; backdrop-filter:blur(6px); }
   table { width:100%; border-collapse:collapse; }
@@ -208,6 +242,19 @@ $rankStart = ($page - 1) * $perPage;
         <button class="tab <?= $sort === $key ? 'active' : '' ?>" data-sort="<?= h($key) ?>"><?= h($label) ?></button>
       <?php endforeach; ?>
     </div>
+    <div class="dropdown" id="periodDd">
+      <button type="button" class="dd-btn" id="ddBtn" aria-haspopup="listbox" aria-expanded="false">
+        <svg class="dd-cal" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+        <span class="dd-label" id="ddLabel"><?= $period === '' ? 'All time' : h($period) ?></span>
+        <svg class="dd-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <ul class="dd-menu" id="ddMenu" role="listbox">
+        <li class="dd-opt<?= $period === '' ? ' sel' : '' ?>" data-value="" role="option">All time</li>
+        <?php foreach ($periodList as $pm): ?>
+          <li class="dd-opt<?= $period === $pm ? ' sel' : '' ?>" data-value="<?= h($pm) ?>" role="option"><?= h($pm) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
     <div class="searchwrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input type="text" id="q" placeholder="Search player…" value="<?= h($search) ?>" autocomplete="off">
@@ -238,14 +285,16 @@ $rankStart = ($page - 1) * $perPage;
 (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const medals = { 1:'🥇', 2:'🥈', 3:'🥉' };
-  let sort = <?= json_encode($sort) ?>, q = <?= json_encode($search) ?>, page = 1, pages = 1, timer = null;
+  let sort = <?= json_encode($sort) ?>, q = <?= json_encode($search) ?>,
+      period = <?= json_encode($period) ?>, page = 1, pages = 1, timer = null;
 
   const el = id => document.getElementById(id);
   const rowsEl = el('rows'), podEl = el('podium'), cardTable = document.querySelector('.card');
 
   async function load() {
     cardTable.classList.add('loading');
-    const url = `?api=1&sort=${encodeURIComponent(sort)}&q=${encodeURIComponent(q)}&page=${page}`;
+    const url = `?api=1&sort=${encodeURIComponent(sort)}&q=${encodeURIComponent(q)}`
+              + `&period=${encodeURIComponent(period)}&page=${page}`;
     let data;
     try { data = await (await fetch(url)).json(); }
     catch { cardTable.classList.remove('loading'); return; }
@@ -255,7 +304,9 @@ $rankStart = ($page - 1) * $perPage;
     pages = data.pages; page = data.page;
     el('stPlayers').textContent = Number(data.players).toLocaleString();
     el('stTime').textContent = data.sum;
-    el('sub').innerHTML = `${Number(data.players).toLocaleString()} players · total time played: <strong>${esc(data.sum)}</strong>`;
+    const periodLabel = period === '' ? 'all time' : period;
+    el('sub').innerHTML = `${Number(data.players).toLocaleString()} players · ${esc(periodLabel)} · `
+                        + `total time played: <strong>${esc(data.sum)}</strong>`;
     el('pageLabel').textContent = `${page} / ${pages}`;
     el('prev').disabled = page <= 1;
     el('next').disabled = page >= pages;
@@ -293,6 +344,24 @@ $rankStart = ($page - 1) * $perPage;
     q = e.target.value.trim(); page = 1;
     clearTimeout(timer); timer = setTimeout(load, 220);
   });
+  // Custom period dropdown.
+  const dd = el('periodDd'), ddBtn = el('ddBtn'), ddMenu = el('ddMenu'), ddLabel = el('ddLabel');
+  const closeDd = () => { dd.classList.remove('open'); ddBtn.setAttribute('aria-expanded', 'false'); };
+  ddBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = dd.classList.toggle('open');
+    ddBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  ddMenu.addEventListener('click', e => {
+    const opt = e.target.closest('.dd-opt'); if (!opt) return;
+    period = opt.dataset.value; page = 1;
+    ddLabel.textContent = opt.textContent;
+    ddMenu.querySelectorAll('.dd-opt').forEach(o => o.classList.toggle('sel', o === opt));
+    closeDd();
+    load();
+  });
+  document.addEventListener('click', e => { if (!dd.contains(e.target)) closeDd(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDd(); });
   el('prev').addEventListener('click', () => { if (page > 1) { page--; load(); } });
   el('next').addEventListener('click', () => { if (page < pages) { page++; load(); } });
 

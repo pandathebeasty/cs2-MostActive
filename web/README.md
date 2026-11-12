@@ -2,7 +2,12 @@
 
 A standalone PHP page that shows the MostActive rank (time played) from the same database the CS2
 plugin writes. No framework, no build step. Live search, sortable tabs (Total / T / CT / Spectator),
+a **period selector** (All time by default, plus one entry per month the plugin has recorded),
 top-3 podium, pagination (max 25/page).
+
+The period dropdown reads all-time totals from the `<prefix>mostactive` table and each month from
+`<prefix>mostactive_periods`. Months are labelled `YYYY-MM` in the plugin's timezone; no timezone
+setting is needed in the web config.
 
 ![MostActive web preview](preview.png)
 

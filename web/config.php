@@ -30,6 +30,10 @@ $config = [
     'per_page' => 25,
     // Time display — match the plugin's TimeFormat. Tokens: HH/mm/ss (padded), H/m/s, D (days).
     'time_format' => 'HH:mm:ss',
+
+    // NOTE: monthly buckets are labelled "YYYY-MM" in the plugin's configured TimeZone (UTC by
+    // default). The web shows those labels verbatim, so no timezone setting is needed here — just
+    // keep the plugin's TimeZone consistent so month boundaries line up with what players expect.
 ];
 
 $local = __DIR__ . '/config.local.php';

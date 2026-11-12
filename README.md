@@ -13,10 +13,25 @@ commands. Includes a standalone web rank board. Port of Franc1sco's SM *Most Act
 ## Commands (chat; configurable aliases)
 | Command | Does |
 |---|---|
+| `!time` / `!active` | Your own T / CT / Spectator / Total breakdown |
 | `!topactive` | Top N players by total time |
 | `!wasted` | Total time played by everyone on the server |
 
-Time is shown per `TimeFormat` (default `HH:mm:ss`; tokens `HH/mm/ss`, `H/m/s`, `D` for days).
+Each command takes an optional **period** argument:
+
+| Argument | Meaning |
+|---|---|
+| *(none)* / `all` | All time (default) |
+| `month` | Current month |
+| `last` | Previous month |
+| `YYYY-MM` | A specific month, e.g. `2026-10` |
+
+The keywords are localized — in Romanian use `tot` / `luna` / `trecuta`. Examples: `!topactive month`,
+`!time last`, `!wasted 2026-09`.
+
+Monthly stats are kept for the last `KeepMonths` months (default 12, a rolling year); older months are
+dropped. All-time totals are kept forever in a separate table. The month boundary follows `TimeZone`
+(empty = UTC). Time is shown per `TimeFormat` (default `HH:mm:ss`; tokens `HH/mm/ss`, `H/m/s`, `D` for days).
 
 ## Install — plugin
 1. Build (`dotnet build MostActive/MostActive.csproj -c Release`) or grab a release.

@@ -12,12 +12,18 @@
     "MySqlUser": "root",
     "MySqlPassword": ""
   },
-  "TimeCommand": ["time", "active"],            // !time — your own T/CT/Spec/Total
-  "TopCommand": ["topactive"],                  // !topactive — top N by total
-  "WastedCommand": ["wasted"],                  // !wasted — sum of everyone's time
+  // Commands accept an optional PERIOD argument: (none)/all = all-time (default),
+  // month = current month, last = previous month, or an explicit YYYY-MM.
+  // Keywords are localized (en: all/month/last, ro: tot/luna/trecuta).
+  // Examples: !topactive  ·  !topactive month  ·  !topactive 2026-10  ·  !time last
+  "TimeCommand": ["time", "active"],            // !time [period] — your own T/CT/Spec/Total
+  "TopCommand": ["topactive"],                  // !topactive [period] — top N by total
+  "WastedCommand": ["wasted"],                  // !wasted [period] — sum of everyone's time
   "TopCount": 10,                               // rows printed by !topactive
   "TimeFormat": "HH:mm:ss",                     // time display; tokens HH/mm/ss, H/m/s, D(days)
   "PruneDays": 30,                              // delete players unseen for N days (0 = never)
+  "KeepMonths": 12,                             // monthly buckets kept (rolling window); 0 = keep all
+  "TimeZone": "",                               // month boundary tz; "" = UTC (e.g. "Europe/Bucharest")
   "TrackSpectator": true,                       // count spectator seconds
   "ChatPrefix": "{green}[MostActive]{default} " // color tags: {green}{red}{blue}{gold}{grey}... 
 }

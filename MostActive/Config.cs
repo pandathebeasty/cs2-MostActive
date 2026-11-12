@@ -33,9 +33,23 @@ public sealed class MostActiveConfig : BasePluginConfig
     [JsonPropertyName("TopCount")]
     public int TopCount { get; set; } = 10;
 
-    /// <summary>Delete players not seen for this many days. 0 = never prune.</summary>
+    /// <summary>Delete players not seen for this many days (all-time table). 0 = never prune.</summary>
     [JsonPropertyName("PruneDays")]
     public int PruneDays { get; set; } = 30;
+
+    /// <summary>
+    /// How many monthly buckets to keep in the periods table. Older months are deleted (the all-time
+    /// table is never pruned by month). Default 12 (a rolling year). 0 = keep all months.
+    /// </summary>
+    [JsonPropertyName("KeepMonths")]
+    public int KeepMonths { get; set; } = 12;
+
+    /// <summary>
+    /// IANA/Windows timezone used to decide which month a second belongs to (and shown by the web).
+    /// Empty = UTC. Examples: "Europe/Bucharest", "UTC". Keep the web panel's timezone in sync.
+    /// </summary>
+    [JsonPropertyName("TimeZone")]
+    public string TimeZone { get; set; } = "";
 
     /// <summary>Count spectator time into the stored spectator bucket.</summary>
     [JsonPropertyName("TrackSpectator")]

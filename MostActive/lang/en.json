@@ -1,12 +1,21 @@
 {
   "not_ready": "{grey}Your time is still loading, try again in a moment.",
-  "rank_header": "{green}Your played time:",
+  "rank_header": "{green}Your played time{1}:",
   "rank_line_t": "{red}Terrorist:{default} {1}",
   "rank_line_ct": "{blue}Counter-Terrorist:{default} {1}",
   "rank_line_spec": "{grey}Spectator:{default} {1}",
   "rank_line_total": "{gold}Total:{default} {1}",
-  "top_header": "{green}Top {1} most active players:",
+  "top_header": "{green}Top {1} most active players{2}:",
   "top_empty": "{grey}No players ranked yet.",
   "top_line": "{gold}#{1}{default} {2} {grey}-{default} {3}",
-  "wasted": "{green}Players have spent a total of {gold}{1}{green} on this server."
+  "wasted": "{green}Players have spent a total of {gold}{1}{green} on this server{2}.",
+
+  "period_alltime": "all time",
+  "period_suffix_alltime": "",
+  "period_suffix_month": " ({1})",
+  "period_bad": "{red}Unknown period '{1}'. Use: month, last, all, or YYYY-MM.",
+
+  "kw_month": "month",
+  "kw_last": "last",
+  "kw_all": "all"
 }
