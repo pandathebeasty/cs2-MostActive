@@ -4,7 +4,7 @@ A time-played rank system for Counter-Strike 2 on [CounterStrikeSharp](https://g
 Counts seconds played per team (T / CT / Spectator) per SteamID64 and shows ranks via colored chat
 commands. Includes a standalone web rank board. Port of Franc1sco's SM *Most Active*.
 
-> **Version:** 1.0.0 · **Target:** .NET 10 / CounterStrikeSharp 1.0.379
+> **Version:** 1.1.0 · **Target:** .NET 10 / CounterStrikeSharp 1.0.379
 
 ## Parts
 1. **Plugin** (`MostActive/`) — server-side C#; tracks time, stores to MySQL or SQLite, chat commands.
@@ -46,15 +46,28 @@ dropped. All-time totals are kept forever in a separate table. The month boundar
    - `db_type` = `mysql` or `sqlite` (match the plugin),
    - `table_prefix` = same as the plugin (`ma_`),
    - MySQL creds, or the absolute path to the plugin's `mostactive.db` for SQLite.
-3. Open `index.php` — sortable (Total / T / CT / Spectator), searchable, paged rank board.
+3. Open `index.php` — sortable (Total / T / CT / Spectator), searchable, paged rank board with a
+   **period selector** (All time by default, plus one entry per recorded month).
 
 > For a public website use **MySQL** (both plugin and web point at the same DB). SQLite works when
 > the web host can read the plugin's `.db` file directly.
 
 ## Database
-Table `<prefix>mostactive` (default `ma_mostactive`): `steamid` (SteamID64, PK), `playername`, `time_ct`,
-`time_t`, `time_spec`, `total`, `last_seen`. Created automatically by the plugin. Players unseen for
-`PruneDays` days are pruned on load.
+Two tables, created automatically by the plugin (prefix default `ma_`):
+
+- **`<prefix>mostactive`** — all-time cumulative totals, kept forever. Columns: `steamid` (SteamID64, PK),
+  `playername`, `time_ct`, `time_t`, `time_spec`, `total`, `last_seen`. Players unseen for `PruneDays`
+  days are pruned on load.
+- **`<prefix>mostactive_periods`** — per-month buckets, PK `(steamid, period)` with `period` as `YYYY-MM`.
+  Only the last `KeepMonths` months are kept (default 12, rolling); older months are dropped.
+
+> ⚠️ The schema changed in 1.1.0 (added monthly periods). On first load the plugin recreates the tables,
+> so **pre-1.1 data is reset**.
+
+### Config keys (see `MostActive.example.jsonc`)
+`KeepMonths` (months to keep, 0 = all), `TimeZone` (month boundary; empty = UTC, e.g. `Europe/Bucharest`),
+plus `TimeCommand` / `TopCommand` / `WastedCommand`, `TopCount`, `TimeFormat`, `PruneDays`,
+`TrackSpectator`, `ChatPrefix`.
 
 ## Notes
 - Time is persisted on disconnect, on each death (cheap periodic save), and plugin unload.
